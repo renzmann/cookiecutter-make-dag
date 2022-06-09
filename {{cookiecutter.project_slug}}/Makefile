@@ -1,12 +1,15 @@
+# Parallel job execution - comment out this line to have all tasks run sequentially
+MAKEFLAGS := --jobs=$(shell nproc)
+
 # "functions"
 to_command = python -m $(PROJECT) $(shell echo $(subst _,-,$(1)) | tr '[:upper:]' '[:lower:]')
 from_import = $(shell python -c "import $(PROJECT); print($(PROJECT).$(1))")
 
 # Directories to search
 PROJECT := $(notdir $(subst -,_,$(CURDIR)))
-TARGETDIR := $(call from_import,TARGET_DIR)
-SQLDIR := $(call from_import,SQL_DIR)
-DATADIR := $(call from_import,DATA_DIR)
+TARGETDIR := target
+SQLDIR := sql
+DATADIR := data
 AUTODIR := $(TARGETDIR)/auto
 VPATH := $(SQLDIR):$(TARGETDIR):$(AUTODIR):$(DATADIR)
 
@@ -14,11 +17,17 @@ VPATH := $(SQLDIR):$(TARGETDIR):$(AUTODIR):$(DATADIR)
 OBJS := $(wildcard $(SQLDIR)/*.sql)
 TARGETS := $(patsubst $(SQLDIR)/%.sql,%.ctas,$(OBJS))
 
-# Parallel job execution - comment out this line to have all tasks run sequentially
-MAKEFLAGS := --jobs=$(shell nproc)
-
-# By default, construct all the analytics tables
+# Default target - construct all the analytics tables
 tables: $(TARGETS)
+
+$(TARGETS): config.yml $(PROJECT) | $(TARGETDIR) $(DATADIR)
+
+$(TARGETDIR):
+	mkdir -p $(TARGETDIR)
+	mkdir -p $(AUTODIR)
+
+$(DATADIR):
+	mkdir -p $(DATADIR)
 
 # ============================= Main DAG ====================================
 # The main table and file dependency graph goes here, of the form:
@@ -34,9 +43,8 @@ tables: $(TARGETS)
 #   <name>.png/.svg/.html
 #
 #
-# prerequisite.ctas
+# prerequisite.ctas:
 # target.ctas: prereqisite.ctas
-
 
 # ========================= Automatic Rules =================================
 # Empty targets ending with ".ctas" indicate a completed CTAS execution
@@ -58,27 +66,20 @@ pyfunc_%: $(PROJECT) | $(TARGETDIR)
 	$(call to_command,$*)-csv
 
 # =========================== Misc. Content =================================
-.PHONY: data install install-dev poetry
-
-$(TARGETDIR):
-	mkdir -p $(TARGETDIR)
-	mkdir -p $(AUTODIR)
-
-$(DATADIR):
-	mkdir -p $(DATADIR)
-
-$(TARGETS): config.yml $(PROJECT) | $(TARGETDIR) $(DATADIR)
-
+.PHONY: clean
 clean:
 	@[ ! -d $(TARGETDIR) ] || rm -r $(TARGETDIR)
 	@[ ! -d $(DATADIR) ] || rm -r $(DATADIR)
 
+.PHONY: poetry
 poetry:
 	@curl -sSL https://install.python-poetry.org | python3 -
 
+.PHONY: install
 install: data poetry
 	@~/.local/bin/poetry install --no-dev
 
+.PHONY: install-dev
 install-dev: data poetry
 	@~/.local/bin/poetry install
 	@pre-commit install
