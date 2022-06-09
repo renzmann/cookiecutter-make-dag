@@ -1,0 +1,51 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "{{ cookiecutter.project_name }}"
+version = "0.1.0"
+description = "{{ cookiecutter.project_short_description }}"
+authors = ["{{ cookiecutter.author }} <{{ cookiecutter.author_email }}>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+click = "^8.0.4"
+jinja2 = "^3.1.1"
+matplotlib = "^3.5.1"
+pandas = "^1.4.1"
+pyyaml = "^6.0"
+requests = "^2.27.1"
+urllib3 = "^1.26.9"
+
+[tool.poetry.dev-dependencies]
+black = "*"
+isort = "*"
+ipdb = "^0.13.9"
+pre-commit = "^2.17.0"
+
+[tool.black]
+line-length = 95
+target-version = ["py37", "py38", "py39", "py310", "py311"]
+extend_exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | \.env
+  | _build
+  | buck-out
+  | build
+  | dist
+  | .vscode
+  | dev
+  | .coverage
+)/
+'''
+
+[tool.isort]
+profile = "black"
